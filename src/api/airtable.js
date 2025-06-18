@@ -125,7 +125,7 @@ export async function createTask(fields) {
     return await createRecord("Tasks", fields);
 }
 
-const fetchTaskById = (id) => apiRequest(`Tasks/${id}`);
+export const fetchTaskById = (id) => apiRequest(`Tasks/${id}`);
 
 export async function fetchTasksByIds(ids = []) {
   if (!ids || ids.length === 0) return [];

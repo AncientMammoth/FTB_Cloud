@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchUpdatesByIds, fetchProjectsByIds } from "../api/airtable";
+import { fetchUpdatesByIds, fetchProjectsByIds, fetchTasksByIds } from "../api/airtable"; // Added fetchTasksByIds
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 
@@ -22,7 +22,15 @@ export default function Updates() {
     const ids = updates
       .map((u) => u.fields.Project && u.fields.Project[0])
       .filter(Boolean);
-    // Remove duplicates
+    return Array.from(new Set(ids));
+  }, [updates]);
+
+  // --- NEW: Extract unique Task IDs from updates ---
+  const taskIds = useMemo(() => {
+    if (!updates) return [];
+    const ids = updates
+      .map((u) => u.fields.Task && u.fields.Task[0])
+      .filter(Boolean);
     return Array.from(new Set(ids));
   }, [updates]);
 
@@ -31,6 +39,13 @@ export default function Updates() {
     queryKey: ["projectsForUpdates", projectIds],
     queryFn: () => fetchProjectsByIds(projectIds),
     enabled: projectIds.length > 0,
+  });
+
+  // --- NEW: Fetch all associated tasks in one go ---
+  const { data: tasks } = useQuery({
+    queryKey: ["tasksForUpdates", taskIds],
+    queryFn: () => fetchTasksByIds(taskIds),
+    enabled: taskIds.length > 0,
   });
 
   // Map project ID to project name
@@ -42,6 +57,16 @@ export default function Updates() {
     });
     return map;
   }, [projects]);
+
+  // --- NEW: Map task ID to task name ---
+  const taskIdToName = useMemo(() => {
+    if (!tasks) return {};
+    const map = {};
+    tasks.forEach((task) => {
+      map[task.id] = task.fields["Task Name"] || task.id;
+    });
+    return map;
+  }, [tasks]);
 
   if (isLoading) return <div className="text-center py-20 text-lg text-gray-400">Loading your updates...</div>;
   if (error) return <div className="text-red-500 text-center py-10">Error loading updates: {error.message}</div>;
@@ -64,12 +89,16 @@ export default function Updates() {
         {updates.map((record) => {
           const projectId = record.fields.Project && record.fields.Project[0];
           const projectName = projectIdToName[projectId] || projectId || "N/A";
+
+          // --- NEW: Get the Task ID and Name ---
+          const taskId = record.fields.Task && record.fields.Task[0];
+          const taskName = taskIdToName[taskId];
+
           return (
             <div 
               key={record.id}
               className="block bg-white p-5 sm:p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-150"
             >
-              {/* Update content (not wrapped in Link) */}
               <div className="font-semibold text-gray-800">
                 Date: <span className="font-normal text-gray-600">{record.fields.Date ? new Date(record.fields.Date).toLocaleDateString() : "N/A"}</span>
               </div>
@@ -77,21 +106,36 @@ export default function Updates() {
                 <strong className="text-gray-700">Notes:</strong>
                 <p className="text-gray-600 whitespace-pre-wrap mt-1">{record.fields.Notes || <span className="italic">No notes.</span>}</p>
               </div>
-              <div className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
-                <span>Project: </span>
-                {projectId ? (
-                  <Link
-                    to={`/projects/${projectId}`}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {projectName}
-                  </Link>
-                ) : (
-                  <span className="italic">N/A</span>
+
+              {/* --- UPDATED: Footer section to display both Project and Task --- */}
+              <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
+                <div>
+                  <span>Project: </span>
+                  {projectId ? (
+                    <Link
+                      to={`/projects/${projectId}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {projectName}
+                    </Link>
+                  ) : (
+                    <span className="italic">N/A</span>
+                  )}
+                </div>
+
+                {taskId && taskName && (
+                  <div>
+                    <span>Task: </span>
+                    <Link
+                      to={`/tasks/${taskId}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {taskName}
+                    </Link>
+                  </div>
                 )}
               </div>
               
-              {/* View update details link - separated from content */}
               <div className="mt-4 text-right">
                 <Link
                   to={`/updates/${record.id}`}

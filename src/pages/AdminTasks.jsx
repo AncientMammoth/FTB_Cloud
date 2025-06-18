@@ -59,7 +59,11 @@ export default function AdminTasks() {
                             ) : (
                                 tasks.map(task => (
                                     <tr key={task.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{task.fields["Task Name"]}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <Link to={`/tasks/${task.id}`} className="text-primary hover:underline">
+                                                {task.fields["Task Name"]}
+                                            </Link>
+                                            </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{task.fields["Assigned To Name"]?.[0]}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{task.fields["Project Name"]?.[0]}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{task.fields["Due Date"]}</td>

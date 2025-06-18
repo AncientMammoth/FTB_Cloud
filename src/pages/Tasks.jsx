@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchTasksByIds, updateTask } from '../api/airtable';
 import { CalendarIcon, BeakerIcon } from '@heroicons/react/24/outline';
@@ -80,7 +81,11 @@ export default function Tasks() {
                                 {projectTasks.map(task => (
                                     <div key={task.id} className="border border-gray-200 rounded-md p-4 bg-gray-50/50">
                                         <div className="flex flex-col md:flex-row justify-between md:items-center">
-                                            <h3 className="text-lg font-semibold text-gray-900">{task.fields["Task Name"]}</h3>
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                <Link to={`/tasks/${task.id}`} className="hover:text-primary">
+                                                    {task.fields["Task Name"]}
+                                                </Link>
+                                                </h3>
                                             <select
                                                 value={task.fields.Status}
                                                 onChange={(e) => handleStatusChange(task.id, e.target.value)}

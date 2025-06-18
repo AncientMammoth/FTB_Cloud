@@ -15,6 +15,7 @@ import UpdateCreation from "./pages/UpdateCreation";
 import TasksRouter from "./pages/TasksRouter";
 import CreateTask from "./pages/CreateTask"; // Make sure this is imported
 import Tasks from './pages/Tasks';
+import TaskDetail from './pages/TaskDetail';
 
 
 function PrivateRoute({ children }) {
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="tasks" element={<TasksRouter />} />
         <Route path="create-task" element={<CreateTask />} />
         <Route path="/my-tasks" element={<Tasks />} />
+        <Route path="/tasks/:taskId" element={<TaskDetail />} />
       </Route>
     </Routes>
   );

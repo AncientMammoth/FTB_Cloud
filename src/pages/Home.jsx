@@ -66,6 +66,9 @@ export default function Home() {
                         <Link to="/create-update" className="px-5 py-2 text-white bg-gray-500 rounded-lg font-medium shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
                             + New Update
                         </Link>
+                        <Link to="/create-task" className="px-5 py-2 text-white bg-gray-500 rounded-lg font-medium shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+                            + New Task
+                        </Link>
                     </div>
                 </section>
 

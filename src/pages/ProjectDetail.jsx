@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProjectById, fetchUpdatesByIds, updateRecord } from "../api/airtable";
+import { fetchProjectById, fetchUpdatesByIds, updateRecord, fetchTasksByIds } from "../api/airtable"; // --- NEW: Added fetchTasksByIds
 import React from "react";
 
 export default function ProjectDetail() {
@@ -21,6 +21,31 @@ export default function ProjectDetail() {
     queryFn: () => fetchUpdatesByIds(updateIds),
     enabled: updateIds.length > 0,
   });
+  
+  // --- NEW: Logic to get Task names for each update ---
+  const taskIds = React.useMemo(() => {
+    if (!updates) return [];
+    const ids = updates
+      .map((u) => u.fields.Task && u.fields.Task[0])
+      .filter(Boolean);
+    return Array.from(new Set(ids));
+  }, [updates]);
+
+  const { data: tasks } = useQuery({
+    queryKey: ["tasksForProjectUpdates", taskIds],
+    queryFn: () => fetchTasksByIds(taskIds),
+    enabled: taskIds.length > 0,
+  });
+
+  const taskIdToName = React.useMemo(() => {
+    if (!tasks) return {};
+    const map = {};
+    tasks.forEach((task) => {
+      map[task.id] = task.fields["Task Name"] || task.id;
+    });
+    return map;
+  }, [tasks]);
+  // --- END NEW LOGIC ---
 
   const [statusValue, setStatusValue] = React.useState("");
   const [startDateValue, setStartDateValue] = React.useState("");
@@ -149,41 +174,42 @@ export default function ProjectDetail() {
         ) : updatesError ? (
           <div className="text-red-500 bg-red-50 p-4 rounded-md">Error loading updates: {updatesError.message}</div>
         ) : updates && updates.length > 0 ? (
-          updates.map((update) => (
-            <Link
-              to={`/updates/${update.id}`}
-              key={update.id}
-              className="block bg-white p-4 sm:p-5 rounded-lg shadow border border-gray-100 hover:shadow-md transition-shadow duration-150 group"
-            >
-              <div className="flex flex-wrap gap-4 text-sm text-gray-800 mb-2">
-                {update.fields["Start Date"] && (
-                  <span>
-                    <strong>Start Date:</strong> {update.fields["Start Date"]}
-                  </span>
-                )}
-                {update.fields["End Date"] && (
-                  <span>
-                    <strong>End Date:</strong> {update.fields["End Date"]}
-                  </span>
-                )}
-                {update.fields["Update Value"] && (
-                  <span>
-                    <strong>Value:</strong> {update.fields["Update Value"]}
-                  </span>
-                )}
-              </div>
-              <div>
-                <p className="text-gray-600 whitespace-pre-wrap">
-                  {update.fields.Notes || <span className="italic">No notes provided.</span>}
-                </p>
-              </div>
-              {update.fields.Date && (
-                <div className="text-xs text-gray-500 mt-2">
-                  <strong>Date:</strong> {new Date(update.fields.Date).toLocaleDateString()}
+          updates.map((update) => {
+            // --- NEW: Get Task details for display ---
+            const taskId = update.fields.Task && update.fields.Task[0];
+            const taskName = taskIdToName[taskId];
+
+            return (
+              <Link
+                to={`/updates/${update.id}`}
+                key={update.id}
+                className="block bg-white p-4 sm:p-5 rounded-lg shadow border border-gray-100 hover:shadow-md transition-shadow duration-150 group"
+              >
+                {/* Removed the old header with start/end date */}
+                <div>
+                  <p className="text-gray-600 whitespace-pre-wrap">
+                    {update.fields.Notes || <span className="italic">No notes provided.</span>}
+                  </p>
                 </div>
-              )}
-            </Link>
-          ))
+                {/* --- UPDATED: Footer with Date and new Task link --- */}
+                <div className="flex justify-between items-center text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
+                  {update.fields.Date ? (
+                    <div>
+                      <strong>Date:</strong> {new Date(update.fields.Date).toLocaleDateString()}
+                    </div>
+                  ) : <div></div>}
+                  {taskId && taskName && (
+                    <div>
+                      <strong>Task: </strong>
+                      <Link to={`/tasks/${taskId}`} className="text-primary hover:underline font-medium" onClick={(e) => e.stopPropagation()}>
+                        {taskName}
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            )
+          })
         ) : (
           <div className="text-gray-500 bg-gray-50 p-6 rounded-md text-center italic">No updates found for this project.</div>
         )}
