@@ -1,8 +1,8 @@
-const API_URL = "http://localhost:4003/api";
+
 
 // Generic API request helper for your new backend
 async function apiRequest(path, options = {}) {
-  const url = `${API_URL}/${path}`;
+  const url = `/api/${path}`;
   try {
     const res = await fetch(url, {
       method: options.method || "GET",

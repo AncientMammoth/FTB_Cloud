@@ -242,7 +242,4 @@ app.patch("/api/tasks/:airtable_id", async (req, res) => {
     } catch (err) { sendError(res, "Failed to update task.", err); }
 });
 
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+module.exports = app;
