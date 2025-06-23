@@ -1,12 +1,18 @@
 const { Pool } = require('pg');
-require('dotenv').config();
 
-// The pool will use the DATABASE_URL from your .env file
+// The code reads credentials from environment variables.
+// It does NOT contain the actual password or host IP.
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 module.exports = {
-  // We export a query function that will be used throughout the app
   query: (text, params) => pool.query(text, params),
 };
