@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAccountsByIds } from "../api/airtable";
+import { fetchAccountsByIds } from "../api";
 import AccountCard from "./AccountCard";
 import SearchAndFilterBar from "./SearchAndFilterBar";
 import QuickCreateProject from "./QuickCreateProject";

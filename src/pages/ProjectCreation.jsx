@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { createProject, fetchAccountsByIds, updateUser } from "../api/airtable";
+import { createProject, fetchAccountsByIds, updateUser } from "../api";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 

@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchUpdateById } from "../api/airtable";
+import { fetchUpdateById } from "../api";
 import React from "react";
 
 export default function UpdateDetail() {

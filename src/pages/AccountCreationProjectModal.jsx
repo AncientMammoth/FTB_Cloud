@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { createProject, updateUser } from "../api/airtable";
+import { createProject, updateUser } from "../api";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 

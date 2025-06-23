@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createTask, fetchAllUsers, fetchProjectsByIds, updateUser, fetchUserById } from "../api/airtable";
+import { createTask, fetchAllUsers, fetchProjectsByIds, updateUser, fetchUserById } from "../api";
 import { useNavigate } from "react-router-dom";
 
 const TASK_STATUS_OPTIONS = ["To Do", "In Progress", "Done", "Blocked"];
@@ -34,50 +34,16 @@ export default function CreateTask() {
 
   // --- REFACTORED LOGIC USING useMutation ---
   const createTaskMutation = useMutation({
-    mutationFn: async (taskData) => {
-      // Step 1: Create the new task record.
-      const newTask = await createTask({
-        "Task Name": taskData["Task Name"],
-        "Project": [taskData["Project"]],
-        "Assigned To": [taskData["Assigned To"]],
-        "Due Date": taskData["Due Date"],
-        "Status": taskData["Status"],
-        "Description": taskData["Description"],
-        "Created By": [adminUserId],
-      });
-
-      // Step 2: Update the ASSIGNED user's record.
-      if (newTask && newTask.id && taskData["Assigned To"]) {
-        const assignedUser = await fetchUserById(taskData["Assigned To"]);
-        if (assignedUser) {
-          const existingTaskIds = assignedUser.fields["Tasks (Assigned To)"] || [];
-          const updatedTaskIds = [...new Set([...existingTaskIds, newTask.id])];
-          await updateUser(taskData["Assigned To"], { "Tasks (Assigned To)": updatedTaskIds });
-        }
-      }
-      
-      // Step 3: Update the ADMIN's (creator's) own record.
-      if (newTask && newTask.id && adminUserId) {
-        const adminUser = await fetchUserById(adminUserId);
-        if (adminUser) {
-            const existingCreatedIds = adminUser.fields["Tasks (Created By)"] || [];
-            const updatedCreatedIds = [...new Set([...existingCreatedIds, newTask.id])];
-            await updateUser(adminUserId, { "Tasks (Created By)": updatedCreatedIds });
-            // Return the updated list of created IDs
-            return updatedCreatedIds;
-        }
-      }
-      return null;
-    },
+    // The new mutation is much simpler. It passes all the necessary data to the backend at once.
+   mutationFn: (taskData) => createTask({
+       ...taskData,
+       "Created By": adminUserId, // Add the creator's ID
+     }),
     // --- THIS IS THE CRITICAL FIX ---
-    onSuccess: (updatedCreatedIds) => {
-      // On success, we update localStorage and invalidate the query.
-      if (updatedCreatedIds) {
-        localStorage.setItem("createdTaskIds", JSON.stringify(updatedCreatedIds));
-      }
-      queryClient.invalidateQueries({ queryKey: ['adminCreatedTasks'] });
-      
-      // Navigate back to the admin tasks page to see the result
+    onSuccess: () => {
+     // Invalidate queries for tasks and projects to refetch fresh data.
+     queryClient.invalidateQueries({ queryKey: ['userTasks'] });
+     queryClient.invalidateQueries({ queryKey: ['projects'] });
       navigate('/tasks');
     },
     onError: (err) => {

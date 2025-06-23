@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { createAccount, updateUser } from "../api/airtable";
+import { createAccount, updateUser } from "../api";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchUpdatesByIds, fetchProjectsByIds, fetchTasksByIds } from "../api/airtable"; // Added fetchTasksByIds
+import { fetchUpdatesByIds, fetchProjectsByIds, fetchTasksByIds } from "../api"; // Added fetchTasksByIds
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 

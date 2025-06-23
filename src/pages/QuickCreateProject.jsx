@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createProject, updateUser } from "../api/airtable";
+import { createProject, updateUser } from "../api";
 import { Listbox, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 
@@ -41,25 +41,18 @@ export default function QuickCreateProject({ accounts, onClose, defaultAccount }
   const projectOwnerId = localStorage.getItem("userRecordId") || "";
 
   const createProjectMutation = useMutation({
-    mutationFn: async (projectData) => {
-      // 1. Create the project
-      const project = await createProject(projectData);
+  mutationFn: (projectData) => createProject(projectData), // Just call createProject
+  onSuccess: (newProject) => { // newProject is returned from the API
+    // Invalidate queries to refetch data
+    queryClient.invalidateQueries(["projects"]);
 
-      // 2. Update the user's Projects field to include this project
-      if (project && project.id && projectOwnerId) {
-        const prevProjects = JSON.parse(localStorage.getItem("projectIds") || "[]");
-        const updatedProjects = [...new Set([...prevProjects, project.id])];
-        await updateUser(projectOwnerId, { "Projects": updatedProjects });
-        localStorage.setItem("projectIds", JSON.stringify(updatedProjects));
-      }
+    // Optionally update localStorage if you still need it
+    const prevProjects = JSON.parse(localStorage.getItem("projectIds") || "[]");
+    localStorage.setItem("projectIds", JSON.stringify([...prevProjects, newProject.id]));
 
-      return project;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["projects"]);
-      onClose();
-    },
-    onError: (err) => {
+    onClose();
+  },
+  onError: (err) => { // ...
       setError("Failed to create project: " + (err.message || "Unknown error"));
       setLoading(false);
     }

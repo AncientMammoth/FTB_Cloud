@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAccountById, fetchProjectsByIds } from "../api/airtable";
+import { fetchAccountById, fetchProjectsByIds } from "../api";
 import React from "react";
 
 export default function AccountDetail() {

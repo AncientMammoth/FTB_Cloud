@@ -15,6 +15,7 @@ export default function ProjectCard({
   onCreateUpdate,
   onExpandNote,
   userName,
+  isSuccess, // This was the missing prop
 }) {
   const projectId = record.id;
   const account = record.fields.Account?.[0];
@@ -55,7 +56,11 @@ export default function ProjectCard({
 
         <div className="flex-1 flex flex-row items-start gap-3 w-full">
           <div className="flex-1 min-w-[200px] max-w-full">
-            {update ? (
+            {isSuccess ? (
+              <div className="flex items-center justify-center h-full bg-green-50 text-green-800 rounded-md p-4 border border-green-200">
+                <p className="font-semibold">✓ Update saved successfully!</p>
+              </div>
+            ) : update ? (
               <UpdateDisplay
                 update={update}
                 userName={userName}
@@ -65,6 +70,7 @@ export default function ProjectCard({
               <UpdateForm
                 notes={notes}
                 updateType={updateType}
+                updateTypeOptions={updateTypeOptions}
                 onNotesChange={onNotesChange}
                 onTypeChange={onTypeChange}
                 onSubmit={onCreateUpdate}

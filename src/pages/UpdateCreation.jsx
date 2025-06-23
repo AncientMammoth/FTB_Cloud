@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { createUpdate, fetchProjectsByIds, updateUser } from "../api/airtable";
+import { createUpdate, fetchProjectsByIds, updateUser } from "../api";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 

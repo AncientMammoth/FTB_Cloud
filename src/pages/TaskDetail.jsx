@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchTaskById, createUpdate, updateUser, updateTask, fetchUpdatesByIds, fetchUserById } from '../api/airtable';
+import { fetchTaskById, createUpdate, updateUser, updateTask, fetchUpdatesByIds, fetchUserById } from '../api';
 import UpdateForm from './UpdateForm';
 import UpdateDisplay from './UpdateDisplay';
 
@@ -53,43 +53,14 @@ export default function TaskDetail() {
   });
 
   const addUpdateMutation = useMutation({
-    mutationFn: async ({ taskData, updatePayload }) => {
-      const newUpdate = await createUpdate({
-        ...updatePayload,
-        "Task": [taskData.id],
-        "Project": taskData.fields.Project ? [taskData.fields.Project[0]] : [],
-        "Update Owner": responderId ? [responderId] : [],
-      });
-
-      if (!newUpdate || !newUpdate.id) {
-        throw new Error("Failed to create the update record in Airtable.");
-      }
-
-      const prevResponderUpdates = JSON.parse(localStorage.getItem("updateIds") || "[]");
-      const newResponderUpdates = [...new Set([...prevResponderUpdates, newUpdate.id])];
-      await updateUser(responderId, { "Updates": newResponderUpdates });
-      localStorage.setItem("updateIds", JSON.stringify(newResponderUpdates));
-
-      const prevTaskUpdates = taskData.fields.Updates || [];
-      const newTaskUpdates = [...new Set([...prevTaskUpdates, newUpdate.id])];
-      await updateTask(taskData.id, { "Updates": newTaskUpdates });
-      
-      const assignerId = taskData.fields["Created By"]?.[0];
-
-      if (assignerId && assignerId !== responderId) {
-        const assignerUser = await fetchUserById(assignerId);
-        if (assignerUser) {
-            const prevAssignerUpdates = assignerUser.fields.Updates || [];
-            const newAssignerUpdates = [...new Set([...prevAssignerUpdates, newUpdate.id])];
-            await updateUser(assignerId, { "Updates": newAssignerUpdates });
-        }
-      }
-
-      return newUpdate;
-    },
+    mutationFn: ({ taskData, updatePayload }) => createUpdate({
+       ...updatePayload,
+       "Task": taskData.id, // Pass the task's Airtable ID
+       "Project": taskData.fields.Project[0], // Pass the project's Airtable ID
+       "Update Owner": responderId, // Pass the current user's Airtable ID
+     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['task', taskId] });
-      queryClient.invalidateQueries({ queryKey: ['userSpecificUpdates'] });
       setNotes("");
       setUpdateType("Call");
     },

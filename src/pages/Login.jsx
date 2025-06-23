@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import React, { useState, useRef } from "react";
-import { fetchUserBySecretKey } from "../api/airtable";
+import { fetchUserBySecretKey } from "../api";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 

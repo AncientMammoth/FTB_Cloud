@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProjectById, fetchUpdatesByIds, updateRecord, fetchTasksByIds } from "../api/airtable"; // --- NEW: Added fetchTasksByIds
+import { fetchProjectById, fetchUpdatesByIds, updateRecord, fetchTasksByIds } from "../api"; // --- NEW: Added fetchTasksByIds
 import React from "react";
 
 export default function ProjectDetail() {

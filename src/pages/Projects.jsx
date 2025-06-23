@@ -7,7 +7,7 @@ import {
   createUpdate,
   updateUser,
   formatDateForAirtable,
-} from "../api/airtable";
+} from "../api";
 import { Listbox, Transition } from "@headlessui/react";
 import { Fragment } from 'react'; // Add explicit Fragment import
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
@@ -56,6 +56,7 @@ export default function Projects() {
   const [filteredUpdatesByProject, setFilteredUpdatesByProject] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [successProjectId, setSuccessProjectId] = useState(null);
 
   const updateOwnerId = localStorage.getItem("userRecordId") || "";
   const userName = localStorage.getItem("userName") || "Current User";
@@ -131,8 +132,15 @@ export default function Projects() {
 
       return update;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => { // The onSuccess callback provides access to the variables sent to the mutation
       queryClient.invalidateQueries(["allUpdates"]);
+      // Set the ID of the project that was just updated
+      setSuccessProjectId(variables.projectId);
+      
+      // Clear the success message after 3 seconds
+      setTimeout(() => {
+        setSuccessProjectId(null);
+      }, 3000);
     },
     onError: (err, variables) => {
       setErrorByProject((prev) => ({
@@ -317,6 +325,7 @@ export default function Projects() {
             <ProjectCard
               key={record.id}
               record={record}
+              isSuccess={successProjectId === record.id}
               update={filteredUpdatesByProject[record.id]}
               notes={notesByProject[record.id] || ""}
               updateType={updateTypeByProject[record.id] || "Call"}

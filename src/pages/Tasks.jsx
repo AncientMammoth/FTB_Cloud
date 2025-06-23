@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchTasksByIds, updateTask } from '../api/airtable';
+import { fetchTasksByIds, updateTask } from '../api';
 import { CalendarIcon, BeakerIcon } from '@heroicons/react/24/outline';
 
 const TASK_STATUS_OPTIONS = ["To Do", "In Progress", "Done", "Blocked"];
