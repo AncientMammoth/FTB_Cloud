@@ -36,7 +36,7 @@ app.get("/api/users/by-secret-key/:key", async (req, res) => {
       LEFT JOIN tasks t_created ON t_created.created_by_id = u.id
       LEFT JOIN updates upd ON upd.update_owner_id = u.id
       WHERE u.airtable_id = $1
-      GROUP BY u.id`,
+      GROUP BY u.id, u.airtable_id, u.user_name`,
       [key]
     );
     if (rows.length === 0) return res.status(404).json({ error: "User not found." });
