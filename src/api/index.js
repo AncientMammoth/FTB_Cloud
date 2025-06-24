@@ -70,10 +70,12 @@ const formatUpdate = (update) => ({
         "Notes": update.notes,
         "Date": update.date,
         "Update Type": update.update_type,
-        "Project": update.project_id ? [update.project_id] : [],
-        "Task": update.task_id ? [update.task_id] : [],
-        "Update Owner": update.update_owner_id ? [update.update_owner_id] : [],
+        // Use the correct airtable_id for linking
+        "Project": update.project_airtable_id ? [update.project_airtable_id] : [],
+        "Task": update.task_airtable_id ? [update.task_airtable_id] : [],
         "Update Owner Name": update.update_owner_name ? [update.update_owner_name] : [],
+        "Project Name": update.project_name,
+        "Task Name": update.task_name,
     }
 });
 

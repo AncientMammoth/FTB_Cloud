@@ -1,152 +1,56 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchUpdatesByIds, fetchProjectsByIds, fetchTasksByIds } from "../api"; // Added fetchTasksByIds
-import React, { useMemo } from "react";
-import { Link } from "react-router-dom";
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchAllUpdates } from '../api';
+import UpdateDisplay from './UpdateDisplay';
+import { Link } from 'react-router-dom';
 
 export default function Updates() {
-  const updateIds = JSON.parse(localStorage.getItem("updateIds") || "[]");
-
-  // Fetch updates
   const { data: updates, isLoading, error } = useQuery({
-    queryKey: ["userSpecificUpdates", updateIds],
-    queryFn: () => fetchUpdatesByIds(updateIds),
-    enabled: updateIds.length > 0,
-    onError: (err) => {
-      console.error("[UpdatesPage] Error fetching updates:", err);
-    },
+    queryKey: ["allUpdates"],
+    queryFn: fetchAllUpdates,
   });
 
-  // Extract unique project IDs from updates
-  const projectIds = useMemo(() => {
-    if (!updates) return [];
-    const ids = updates
-      .map((u) => u.fields.Project && u.fields.Project[0])
-      .filter(Boolean);
-    return Array.from(new Set(ids));
-  }, [updates]);
-
-  // --- NEW: Extract unique Task IDs from updates ---
-  const taskIds = useMemo(() => {
-    if (!updates) return [];
-    const ids = updates
-      .map((u) => u.fields.Task && u.fields.Task[0])
-      .filter(Boolean);
-    return Array.from(new Set(ids));
-  }, [updates]);
-
-  // Fetch all projects in one go
-  const { data: projects } = useQuery({
-    queryKey: ["projectsForUpdates", projectIds],
-    queryFn: () => fetchProjectsByIds(projectIds),
-    enabled: projectIds.length > 0,
-  });
-
-  // --- NEW: Fetch all associated tasks in one go ---
-  const { data: tasks } = useQuery({
-    queryKey: ["tasksForUpdates", taskIds],
-    queryFn: () => fetchTasksByIds(taskIds),
-    enabled: taskIds.length > 0,
-  });
-
-  // Map project ID to project name
-  const projectIdToName = useMemo(() => {
-    if (!projects) return {};
-    const map = {};
-    projects.forEach((proj) => {
-      map[proj.id] = proj.fields["Project Name"] || proj.id;
-    });
-    return map;
-  }, [projects]);
-
-  // --- NEW: Map task ID to task name ---
-  const taskIdToName = useMemo(() => {
-    if (!tasks) return {};
-    const map = {};
-    tasks.forEach((task) => {
-      map[task.id] = task.fields["Task Name"] || task.id;
-    });
-    return map;
-  }, [tasks]);
-
-  if (isLoading) return <div className="text-center py-20 text-lg text-gray-400">Loading your updates...</div>;
-  if (error) return <div className="text-red-500 text-center py-10">Error loading updates: {error.message}</div>;
-  if (!updates || updates.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 text-gray-300 mb-4">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-        </svg>
-        <div className="text-xl mb-2 font-semibold text-gray-600">No updates found.</div>
-        <p className="text-gray-400">Updates you've made or are linked to will appear here.</p>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="text-center py-20 text-gray-500">Loading all updates...</div>;
+  if (error) return <div className="text-center py-20 text-red-500">Error loading updates: {error.message}</div>;
 
   return (
-    <div>
-      <h1 className="text-2xl sm:text-3xl font-bold mb-8 text-primary font-merriweather">My Updates</h1>
-      <div className="space-y-5">
-        {updates.map((record) => {
-          const projectId = record.fields.Project && record.fields.Project[0];
-          const projectName = projectIdToName[projectId] || projectId || "N/A";
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800">Global Updates Feed</h1>
+        <p className="text-gray-500 mt-1">A timeline of all recent updates across all projects and tasks.</p>
+      </div>
 
-          // --- NEW: Get the Task ID and Name ---
-          const taskId = record.fields.Task && record.fields.Task[0];
-          const taskName = taskIdToName[taskId];
-
-          return (
-            <div 
-              key={record.id}
-              className="block bg-white p-5 sm:p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-150"
-            >
-              <div className="font-semibold text-gray-800">
-                Date: <span className="font-normal text-gray-600">{record.fields.Date ? new Date(record.fields.Date).toLocaleDateString() : "N/A"}</span>
-              </div>
-              <div className="mt-2">
-                <strong className="text-gray-700">Notes:</strong>
-                <p className="text-gray-600 whitespace-pre-wrap mt-1">{record.fields.Notes || <span className="italic">No notes.</span>}</p>
-              </div>
-
-              {/* --- UPDATED: Footer section to display both Project and Task --- */}
-              <div className="flex items-center justify-between text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
-                <div>
-                  <span>Project: </span>
-                  {projectId ? (
-                    <Link
-                      to={`/projects/${projectId}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {projectName}
-                    </Link>
-                  ) : (
-                    <span className="italic">N/A</span>
+      <div className="space-y-8">
+        {updates && updates.length > 0 ? (
+          updates.map(update => (
+            <div key={update.id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+              <div className="pb-4 mb-4 border-b border-gray-200">
+                <p className="text-sm text-gray-500">
+                  Associated with: 
+                  <Link to={`/projects/${update.fields.Project?.[0]}`} className="font-semibold text-blue-600 hover:underline ml-1">
+                    {update.fields["Project Name"] || "N/A"}
+                  </Link>
+                  {update.fields["Task Name"] && (
+                    <>
+                      <span className="mx-2">/</span>
+                      <Link to={`/tasks/${update.fields.Task?.[0]}`} className="font-semibold text-gray-700 hover:underline">
+                        {update.fields["Task Name"]}
+                      </Link>
+                    </>
                   )}
-                </div>
+                </p>
+              </div>
 
-                {taskId && taskName && (
-                  <div>
-                    <span>Task: </span>
-                    <Link
-                      to={`/tasks/${taskId}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {taskName}
-                    </Link>
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-4 text-right">
-                <Link
-                  to={`/updates/${record.id}`}
-                  className="inline-block px-4 py-2 bg-blue-50 text-primary rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-                >
-                  View Details
-                </Link>
-              </div>
+              {/* Pass the fields object directly to UpdateDisplay */}
+              <UpdateDisplay
+                update={update.fields}
+                userName={update.fields["Update Owner Name"]?.[0] || 'Unknown User'}
+              />
             </div>
-          );
-        })}
+          ))
+        ) : (
+          <p className="text-center py-12 text-gray-500">No updates found.</p>
+        )}
       </div>
     </div>
   );

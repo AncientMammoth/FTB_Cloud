@@ -155,16 +155,29 @@ app.get("/api/tasks", async (req, res) => {
 app.get("/api/updates", async (req, res) => {
     try {
         const { ids } = req.query;
+        // This query now joins to get the linkable airtable_ids for projects and tasks
         let query = `
-            SELECT u.*, owner.user_name as update_owner_name
+            SELECT 
+              u.*, 
+              owner.user_name as update_owner_name,
+              p.project_name,
+              p.airtable_id as project_airtable_id,
+              t.task_name,
+              t.airtable_id as task_airtable_id
             FROM updates u
             LEFT JOIN users owner ON u.update_owner_id = owner.id
+            LEFT JOIN projects p ON u.project_id = p.id
+            LEFT JOIN tasks t ON u.task_id = t.id
         `;
         const queryParams = [];
+
         if (ids) {
             query += ` WHERE u.airtable_id = ANY($1::varchar[])`;
             queryParams.push(ids.split(','));
         }
+
+        query += ` ORDER BY u.date DESC, u.created_at DESC`;
+
         const { rows } = await db.query(query, queryParams);
         res.json(rows);
     } catch (err) {
