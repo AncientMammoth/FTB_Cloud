@@ -69,16 +69,21 @@ app.get("/api/accounts", async (req, res) => {
         const { ids } = req.query;
         if (!ids) return res.status(400).json({ error: "No IDs provided." });
         const idArray = ids.split(',');
-        
-        // This query now joins with projects and aggregates their IDs
+
+        // This improved query uses a subquery to avoid the GROUP BY issue.
         const { rows } = await db.query(
-            `SELECT 
+            `SELECT
                a.*,
-               COALESCE(json_agg(p.airtable_id) FILTER (WHERE p.id IS NOT NULL), '[]') as projects
+               COALESCE(p.projects, '[]') as projects
              FROM accounts a
-             LEFT JOIN projects p ON p.account_id = a.id
-             WHERE a.airtable_id = ANY($1::varchar[])
-             GROUP BY a.id`, 
+             LEFT JOIN (
+                SELECT 
+                  account_id, 
+                  json_agg(airtable_id) as projects
+                FROM projects
+                GROUP BY account_id
+             ) p ON p.account_id = a.id
+             WHERE a.airtable_id = ANY($1::varchar[])`,
             [idArray]
         );
         
