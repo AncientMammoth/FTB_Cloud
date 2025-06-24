@@ -224,22 +224,27 @@ app.post("/api/tasks", async (req, res) => {
 
 // *** THIS IS THE NEWLY ADDED CODE BLOCK ***
 app.post("/api/updates", async (req, res) => {
+    // Correctly destructure the incoming string values
     const {
         "Notes": notes, "Date": date, "Update Type": update_type,
-        "Project": project_airtable_id_arr, "Task": task_airtable_id_arr, "Update Owner": owner_airtable_id_arr
+        "Project": project_airtable_id, "Task": task_airtable_id, "Update Owner": owner_airtable_id
     } = req.body;
 
     try {
-        const projectRes = await db.query("SELECT id FROM projects WHERE airtable_id = $1", [project_airtable_id_arr[0]]);
-        const ownerRes = await db.query("SELECT id FROM users WHERE airtable_id = $1", [owner_airtable_id_arr[0]]);
+        // Remove the [0] array access to use the string IDs directly
+        const projectRes = await db.query("SELECT id FROM projects WHERE airtable_id = $1", [project_airtable_id]);
+        const ownerRes = await db.query("SELECT id FROM users WHERE airtable_id = $1", [owner_airtable_id]);
+        
         const project_id = projectRes.rows[0]?.id;
         const owner_id = ownerRes.rows[0]?.id;
 
-        if (!project_id || !owner_id) return res.status(400).json({ error: "Invalid project or owner ID" });
+        if (!project_id || !owner_id) {
+            return res.status(400).json({ error: "Invalid project or owner ID" });
+        }
         
         let task_id = null;
-        if (task_airtable_id_arr && task_airtable_id_arr.length > 0) {
-            const taskRes = await db.query("SELECT id FROM tasks WHERE airtable_id = $1", [task_airtable_id_arr[0]]);
+        if (task_airtable_id) { // Check if task_airtable_id is present
+            const taskRes = await db.query("SELECT id FROM tasks WHERE airtable_id = $1", [task_airtable_id]);
             task_id = taskRes.rows[0]?.id;
         }
 
