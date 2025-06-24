@@ -117,7 +117,7 @@ app.get("/api/tasks", async (req, res) => {
         if (!ids) return res.status(400).json({ error: "No IDs provided." });
         const idArray = ids.split(',');
         const { rows } = await db.query(
-            `SELECT t.*, p.project_name, u.user_name as assigned_to_name
+            `SELECT t.*, p.project_name, p.airtable_id as project_airtable_id, u.user_name as assigned_to_name
              FROM tasks t
              LEFT JOIN projects p ON t.project_id = p.id
              LEFT JOIN users u ON t.assigned_to_id = u.id
