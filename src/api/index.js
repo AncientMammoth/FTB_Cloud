@@ -56,11 +56,11 @@ const formatTask = (task) => ({
         "Description": task.description,
         "Status": task.status,
         "Due Date": task.due_date,
-        "Project": task.project_airtable_id ? [task.project_airtable_id] : [], // This uses the correct ID
+        "Project": task.project_airtable_id ? [task.project_airtable_id] : [],
         "Project Name": task.project_name ? [task.project_name] : [],
         "Assigned To": task.assigned_to_id ? [task.assigned_to_id] : [],
         "Assigned To Name": task.assigned_to_name ? [task.assigned_to_name] : [],
-        "Updates": task.updates || [],
+        "Updates": task.updates || [], // This line will now receive the data
     }
 });
 

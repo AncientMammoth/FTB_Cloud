@@ -116,11 +116,33 @@ app.get("/api/tasks", async (req, res) => {
         const { ids } = req.query;
         if (!ids) return res.status(400).json({ error: "No IDs provided." });
         const idArray = ids.split(',');
+
         const { rows } = await db.query(
-            `SELECT t.*, p.project_name, p.airtable_id as project_airtable_id, u.user_name as assigned_to_name
+            `SELECT 
+               t.*, 
+               p.project_name, 
+               p.airtable_id as project_airtable_id, 
+               u.user_name as assigned_to_name,
+               COALESCE(upd.updates, '[]'::json) as updates
              FROM tasks t
              LEFT JOIN projects p ON t.project_id = p.id
              LEFT JOIN users u ON t.assigned_to_id = u.id
+             LEFT JOIN (
+                SELECT 
+                  task_id, 
+                  json_agg(
+                    json_build_object(
+                      'id', up.airtable_id, 
+                      'notes', up.notes, 
+                      'date', up.date,
+                      'update_type', up.update_type,
+                      'update_owner_name', owner.user_name
+                    )
+                  ) as updates
+                FROM updates up
+                LEFT JOIN users owner ON up.update_owner_id = owner.id
+                GROUP BY task_id
+             ) upd ON upd.task_id = t.id
              WHERE t.airtable_id = ANY($1::varchar[])`,
             [idArray]
         );

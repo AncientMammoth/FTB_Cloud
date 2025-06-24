@@ -44,6 +44,7 @@ export default function CreateTask() {
      // Invalidate queries for tasks and projects to refetch fresh data.
      queryClient.invalidateQueries({ queryKey: ['userTasks'] });
      queryClient.invalidateQueries({ queryKey: ['projects'] });
+     queryClient.invalidateQueries({ queryKey: ['tasks'] });
       navigate('/tasks');
     },
     onError: (err) => {

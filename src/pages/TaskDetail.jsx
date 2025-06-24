@@ -1,95 +1,72 @@
-import React, { useState, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchTaskById, createUpdate, updateUser, updateTask, fetchUpdatesByIds, fetchUserById } from '../api';
+import { fetchTaskById, createUpdate } from '../api';
 import UpdateForm from './UpdateForm';
 import UpdateDisplay from './UpdateDisplay';
-
-// A component to render the list of updates for the task
-function TaskUpdateList({ updateIds }) {
-  // We no longer need the hardcoded userName from localStorage here.
-  const { data: updates, isLoading } = useQuery({
-    queryKey: ['taskUpdates', updateIds],
-    queryFn: () => fetchUpdatesByIds(updateIds),
-    enabled: !!updateIds && updateIds.length > 0,
-  });
-
-  if (isLoading) return <div className="text-gray-500">Loading updates...</div>;
-  if (!updates || updates.length === 0) {
-    return <div className="text-center py-6 text-gray-500 border-t mt-8">No updates have been added to this task yet.</div>;
-  }
-
-  return (
-    <div className="space-y-4 border-t pt-8 mt-8">
-      <h2 className="text-xl font-semibold text-gray-700">Task Updates</h2>
-      {updates.map(update => (
-        // --- THIS IS THE FIX ---
-        // We now get the user's name directly from the update record's new lookup field.
-        <UpdateDisplay 
-          key={update.id} 
-          update={update} 
-          userName={update.fields["Update Owner Name"]?.[0] || 'Unknown User'} 
-        />
-      ))}
-    </div>
-  );
-}
-
 
 export default function TaskDetail() {
   const { taskId } = useParams();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
+  // State to manage the new update form
   const [notes, setNotes] = useState("");
-  const [updateType, setUpdateType] = useState("Call");
+  const [updateType, setUpdateType] = useState("Call"); // Set a default value
 
-  const responderId = localStorage.getItem("userRecordId") || "";
-
+  // This is your query to fetch the task details.
+  // The backend now includes all associated updates in this single call.
   const { data: task, isLoading: isTaskLoading, error: taskError } = useQuery({
     queryKey: ['task', taskId],
     queryFn: () => fetchTaskById(taskId),
     enabled: !!taskId,
   });
 
+  // This is the mutation hook for creating a new update
   const addUpdateMutation = useMutation({
-    mutationFn: ({ taskData, updatePayload }) => createUpdate({
-       ...updatePayload,
-       "Task": taskData.id, // Pass the task's Airtable ID
-       "Project": taskData.fields.Project[0], // Pass the project's Airtable ID
-       "Update Owner": responderId, // Pass the current user's Airtable ID
-     }),
+    mutationFn: createUpdate,
     onSuccess: () => {
+      // This is the fix for the "instant update" issue.
+      // It invalidates the cached data for this task, forcing a refetch.
       queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      // Reset the form fields after a successful submission
       setNotes("");
       setUpdateType("Call");
     },
     onError: (err) => {
       console.error("Failed to add update:", err);
+      // You can set an error state here to show a message to the user
     },
   });
 
+  // This function handles the form submission
   const handleUpdateSubmit = () => {
     if (!notes.trim()) {
+      alert("Please enter some notes for the update.");
       return;
     }
-    addUpdateMutation.mutate({
-      taskData: task,
-      updatePayload: {
-        "Notes": notes,
-        "Update Type": updateType,
-        "Date": new Date().toISOString().slice(0, 10),
-      },
-    });
+
+    // Construct the payload for the API
+    const updateData = {
+      "Notes": notes,
+      "Update Type": updateType,
+      "Date": new Date().toISOString(),
+      // Ensure IDs are passed correctly
+      "Task": task.id, // The Airtable-style ID of the current task
+      "Project": task.fields.Project[0], // The Project ID from the task's data
+      "Update Owner": localStorage.getItem("userRecordId"), // The logged-in user's ID
+    };
+
+    addUpdateMutation.mutate(updateData);
   };
 
   if (isTaskLoading) return <div className="text-center py-20 text-gray-500">Loading task...</div>;
   if (taskError) return <div className="text-center py-20 text-red-500">Error loading task: {taskError.message}</div>;
+  if (!task) return <div>Task not found.</div>;
 
   const taskFields = task.fields;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Task Details Header */}
       <div className="bg-white shadow-md rounded-lg p-6 mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">{taskFields["Task Name"]}</h1>
@@ -105,12 +82,12 @@ export default function TaskDetail() {
           </div>
           <div>
             <span className="font-semibold text-gray-500 block">Assigned To</span>
-            <span className="text-gray-800">{taskFields["Assigned To Name"]?.[0] || 'N/A'}</span>
+            <span className="text-gray-800">{taskFields["Assigned To Name"] || 'N/A'}</span>
           </div>
           <div>
             <span className="font-semibold text-gray-500 block">Project</span>
-            <Link to={`/projects/${taskFields.Project?.[0]}`} className="text-primary hover:underline">
-                {taskFields["Project Name"]?.[0] || 'N/A'}
+            <Link to={`/projects/${taskFields.Project?.[0]}`} className="text-blue-600 hover:underline">
+                {taskFields["Project Name"] || 'N/A'}
             </Link>
           </div>
         </div>
@@ -127,12 +104,25 @@ export default function TaskDetail() {
           onSubmit={handleUpdateSubmit}
           error={addUpdateMutation.error?.message}
         />
-        {addUpdateMutation.isLoading && <p className="text-blue-500 mt-2">Saving update...</p>}
-        {addUpdateMutation.isSuccess && <p className="text-green-500 mt-2">Update added successfully!</p>}
+        {addUpdateMutation.isLoading && <p className="text-blue-500 mt-2 text-sm">Saving update...</p>}
       </div>
       
       {/* Existing Updates List */}
-      <TaskUpdateList updateIds={taskFields.Updates} />
+      <div className="space-y-4 pt-8 mt-8">
+        <h2 className="text-2xl font-semibold text-gray-700">Task History</h2>
+        {taskFields.Updates && taskFields.Updates.length > 0 ? (
+          taskFields.Updates.map(update => (
+            <UpdateDisplay 
+              key={update.id} 
+              update={update}
+              // The backend now provides the owner's name directly
+              userName={update.update_owner_name || 'Unknown User'} 
+            />
+          ))
+        ) : (
+          <div className="text-center py-6 text-gray-500 border-t">No updates have been added to this task yet.</div>
+        )}
+      </div>
     </div>
   );
 }
