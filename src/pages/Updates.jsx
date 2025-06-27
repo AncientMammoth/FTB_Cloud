@@ -5,35 +5,28 @@ import UpdateDisplay from './UpdateDisplay';
 import { Link } from 'react-router-dom';
 
 export default function Updates() {
-  // Get the current user's record ID from localStorage
-  const updateOwnerId = localStorage.getItem("userRecordId");
-
-  const { data: userUpdates, isLoading, error } = useQuery({
-    // Use the owner's ID in the query key to ensure it refetches if the user changes
-    queryKey: ["userUpdates", updateOwnerId],
-    // Pass the ID to the fetch function
-    queryFn: () => fetchAllUpdates(updateOwnerId),
-    // Only run the query if the updateOwnerId exists
-    enabled: !!updateOwnerId,
+  const { data: updates, isLoading, error } = useQuery({
+    queryKey: ["allUpdates"],
+    queryFn: fetchAllUpdates,
   });
 
-  if (isLoading) return <div className="text-center py-20 text-gray-500">Loading your updates...</div>;
+  if (isLoading) return <div className="text-center py-20 text-gray-500">Loading all updates...</div>;
   if (error) return <div className="text-center py-20 text-red-500">Error loading updates: {error.message}</div>;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">My Updates</h1>
-        <p className="text-gray-500 mt-1">A timeline of all updates you have created.</p>
+        <h1 className="text-3xl font-bold text-gray-800">Global Updates Feed</h1>
+        <p className="text-gray-500 mt-1">A timeline of all recent updates across all projects and tasks.</p>
       </div>
 
       <div className="space-y-8">
-        {userUpdates && userUpdates.length > 0 ? (
-          userUpdates.map(update => (
+        {updates && updates.length > 0 ? (
+          updates.map(update => (
             <div key={update.id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
               <div className="pb-4 mb-4 border-b border-gray-200">
                 <p className="text-sm text-gray-500">
-                  Associated with:
+                  Associated with: 
                   <Link to={`/projects/${update.project_airtable_id}`} className="font-semibold text-blue-600 hover:underline ml-1">
                     {update.project_name || "N/A"}
                   </Link>
@@ -55,7 +48,7 @@ export default function Updates() {
             </div>
           ))
         ) : (
-          <p className="text-center py-12 text-gray-500">You have not created any updates yet.</p>
+          <p className="text-center py-12 text-gray-500">No updates found.</p>
         )}
       </div>
     </div>

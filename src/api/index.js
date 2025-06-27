@@ -186,21 +186,10 @@ export function formatDateForAirtable(dateInput) {
   return `${year}-${month}-${day}`;
 }
 
-export const fetchAllUpdates = async (ownerId) => {
-  const { VITE_API_BASE_URL } = import.meta.env;
-
-  // Do not make a request if there is no ownerId, fulfilling the user-only requirement.
-  if (!ownerId) {
-    return [];
-  }
-
-  const response = await fetch(`${VITE_API_BASE_URL}/updates?owner_id=${ownerId}`);
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || "Failed to fetch updates for user");
-  }
-  return response.json();
-};
+export async function fetchAllUpdates() {
+    const updates = await apiRequest("updates");
+    return updates.map(formatUpdate);
+}
 
 export function processUpdatesByProject(allUpdates, projectIds = []) {
   if (!projectIds || projectIds.length === 0) return {};

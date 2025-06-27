@@ -154,13 +154,7 @@ app.get("/api/tasks", async (req, res) => {
 
 app.get("/api/updates", async (req, res) => {
     try {
-        const { ids, owner_id } = req.query; // Accept owner_id
-
-        // If no filter is provided at all, return an empty array.
-        if (!ids && !owner_id) {
-            return res.json([]);
-        }
-        
+        const { ids } = req.query;
         let query = `
             SELECT 
               u.*, 
@@ -175,23 +169,12 @@ app.get("/api/updates", async (req, res) => {
             LEFT JOIN tasks t ON u.task_id = t.id
         `;
         const queryParams = [];
-        const whereClauses = [];
 
         if (ids) {
+            query += ` WHERE u.airtable_id = ANY($1::varchar[])`;
             queryParams.push(ids.split(','));
-            whereClauses.push(`u.airtable_id = ANY($${queryParams.length}::varchar[])`);
-        }
-        
-        // Add a WHERE clause for the owner's ID
-        if (owner_id) {
-            queryParams.push(owner_id);
-            whereClauses.push(`u.update_owner_id = $${queryParams.length}`);
         }
 
-        if (whereClauses.length > 0) {
-            query += ` WHERE ${whereClauses.join(' AND ')}`;
-        }
-        
         query += ` ORDER BY u.date DESC, u.created_at DESC`;
 
         const { rows } = await db.query(query, queryParams);
