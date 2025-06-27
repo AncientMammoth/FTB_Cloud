@@ -77,8 +77,8 @@ app.get("/api/accounts", async (req, res) => {
                COALESCE(p.projects, '[]') as projects
              FROM accounts a
              LEFT JOIN (
-                SELECT 
-                  account_id, 
+                SELECT
+                  account_id,
                   json_agg(airtable_id) as projects
                 FROM projects
                 GROUP BY account_id
@@ -86,7 +86,7 @@ app.get("/api/accounts", async (req, res) => {
              WHERE a.airtable_id = ANY($1::varchar[])`,
             [idArray]
         );
-        
+
         res.json(rows);
     } catch (err) {
         sendError(res, 'Failed to fetch accounts', err);
@@ -118,22 +118,22 @@ app.get("/api/tasks", async (req, res) => {
         const idArray = ids.split(',');
 
         const { rows } = await db.query(
-            `SELECT 
-               t.*, 
-               p.project_name, 
-               p.airtable_id as project_airtable_id, 
+            `SELECT
+               t.*,
+               p.project_name,
+               p.airtable_id as project_airtable_id,
                u.user_name as assigned_to_name,
                COALESCE(upd.updates, '[]'::json) as updates
              FROM tasks t
              LEFT JOIN projects p ON t.project_id = p.id
              LEFT JOIN users u ON t.assigned_to_id = u.id
              LEFT JOIN (
-                SELECT 
-                  task_id, 
+                SELECT
+                  task_id,
                   json_agg(
                     json_build_object(
-                      'id', up.airtable_id, 
-                      'notes', up.notes, 
+                      'id', up.airtable_id,
+                      'notes', up.notes,
                       'date', up.date,
                       'update_type', up.update_type,
                       'update_owner_name', owner.user_name
@@ -152,12 +152,13 @@ app.get("/api/tasks", async (req, res) => {
     }
 });
 
+// START OF MODIFIED CODE
 app.get("/api/updates", async (req, res) => {
     try {
-        const { ids } = req.query;
+        const { ids, userId } = req.query; // Expect 'userId' to be the airtable_id
         let query = `
-            SELECT 
-              u.*, 
+            SELECT
+              u.*,
               owner.user_name as update_owner_name,
               p.project_name,
               p.airtable_id as project_airtable_id,
@@ -173,6 +174,20 @@ app.get("/api/updates", async (req, res) => {
         if (ids) {
             query += ` WHERE u.airtable_id = ANY($1::varchar[])`;
             queryParams.push(ids.split(','));
+        } else if (userId) {
+            // New logic: Filter by the user who created the update
+            // First, get the internal database ID for the user from their airtable_id
+            const userResult = await db.query('SELECT id FROM users WHERE airtable_id = $1', [userId]);
+
+            if (userResult.rows.length === 0) {
+                // If no user is found for that airtable_id, return an empty array
+                return res.json([]);
+            }
+            const internalUserId = userResult.rows[0].id;
+
+            // Now, filter the updates by the internal user ID
+            query += ` WHERE u.update_owner_id = $1`;
+            queryParams.push(internalUserId);
         }
 
         query += ` ORDER BY u.date DESC, u.created_at DESC`;
@@ -183,6 +198,7 @@ app.get("/api/updates", async (req, res) => {
         sendError(res, 'Failed to fetch updates', err);
     }
 });
+// END OF MODIFIED CODE
 
 
 // =================================================================
@@ -237,7 +253,7 @@ app.post("/api/tasks", async (req, res) => {
         const projectRes = await db.query("SELECT id FROM projects WHERE airtable_id = $1", [project_airtable_id]);
         const assignedToRes = await db.query("SELECT id FROM users WHERE airtable_id = $1", [assigned_to_airtable_id]);
         const createdByRes = await db.query("SELECT id FROM users WHERE airtable_id = $1", [created_by_airtable_id]);
-        
+
         const project_id = projectRes.rows[0]?.id;
         const assigned_to_id = assignedToRes.rows[0]?.id;
         const created_by_id = createdByRes.rows[0]?.id;
@@ -245,18 +261,17 @@ app.post("/api/tasks", async (req, res) => {
         if (!project_id || !assigned_to_id || !created_by_id) {
             return res.status(400).json({ error: "Invalid project, assigned to, or created by ID" });
         }
-        
+
         const { rows } = await db.query(
             `INSERT INTO tasks (task_name, project_id, assigned_to_id, due_date, status, description, created_by_id, airtable_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
             [name, project_id, assigned_to_id, due_date, status, description, created_by_id, `rec_${Math.random().toString(16).slice(2)}`]
         );
         res.status(201).json(rows[0]);
-    } catch (err) { 
-        sendError(res, 'Failed to create task.', err); 
+    } catch (err) {
+        sendError(res, 'Failed to create task.', err);
     }
 });
 
-// *** THIS IS THE NEWLY ADDED CODE BLOCK ***
 app.post("/api/updates", async (req, res) => {
     // Correctly destructure the incoming string values
     const {
@@ -268,14 +283,14 @@ app.post("/api/updates", async (req, res) => {
         // Remove the [0] array access to use the string IDs directly
         const projectRes = await db.query("SELECT id FROM projects WHERE airtable_id = $1", [project_airtable_id]);
         const ownerRes = await db.query("SELECT id FROM users WHERE airtable_id = $1", [owner_airtable_id]);
-        
+
         const project_id = projectRes.rows[0]?.id;
         const owner_id = ownerRes.rows[0]?.id;
 
         if (!project_id || !owner_id) {
             return res.status(400).json({ error: "Invalid project or owner ID" });
         }
-        
+
         let task_id = null;
         if (task_airtable_id) { // Check if task_airtable_id is present
             const taskRes = await db.query("SELECT id FROM tasks WHERE airtable_id = $1", [task_airtable_id]);

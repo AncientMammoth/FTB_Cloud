@@ -186,10 +186,27 @@ export function formatDateForAirtable(dateInput) {
   return `${year}-${month}-${day}`;
 }
 
-export async function fetchAllUpdates() {
-    const updates = await apiRequest("updates");
-    return updates.map(formatUpdate);
-}
+export const fetchAllUpdates = async ({ queryKey }) => {
+  // queryKey from TanStack Query is an array, we destructure the userId from the second element
+  const [_key, { userId }] = queryKey;
+
+  let url = `${API_BASE_URL}/updates`;
+
+  // If a userId is provided, add it as a query parameter.
+  // This is how the backend will know which user's updates to fetch.
+  if (userId) {
+    url += `?userId=${userId}`;
+  }
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: "Network response was not ok" }));
+    throw new Error(errorData.error || "Failed to fetch updates");
+  }
+
+  return response.json();
+};
 
 export function processUpdatesByProject(allUpdates, projectIds = []) {
   if (!projectIds || projectIds.length === 0) return {};
