@@ -15,12 +15,12 @@ export default function ProjectDetail() {
     }
   });
 
-  const updateIds = project?.fields?.Updates || [];
   const { data: updates, isLoading: updatesLoading, error: updatesError } = useQuery({
-    queryKey: ["projectUpdates", updateIds],
-    queryFn: () => fetchUpdatesByIds(updateIds),
-    enabled: updateIds.length > 0,
+  queryKey: ["projectUpdates", id],
+  queryFn: () => fetchUpdatesByProjectId(id),
+  enabled: !!id,
   });
+
   
   // --- NEW: Logic to get Task names for each update ---
   const taskIds = React.useMemo(() => {

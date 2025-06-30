@@ -196,6 +196,35 @@ app.get("/api/updates", async (req, res) => {
     }
 });
 
+app.get("/api/updates/by-project/:projectId", async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        console.log('Fetching updates for project:', projectId); // Debug log
+        
+        const { rows } = await db.query(
+            `SELECT 
+              u.*, 
+              owner.user_name as update_owner_name,
+              p.project_name,
+              p.airtable_id as project_airtable_id,
+              t.task_name,
+              t.airtable_id as task_airtable_id
+            FROM updates u
+            LEFT JOIN users owner ON u.update_owner_id = owner.id
+            LEFT JOIN projects p ON u.project_id = p.id
+            LEFT JOIN tasks t ON u.task_id = t.id
+            WHERE p.airtable_id = $1
+            ORDER BY u.date DESC, u.created_at DESC`,
+            [projectId]
+        );
+        
+        console.log(`Found ${rows.length} updates for project ${projectId}`); // Debug log
+        res.json(rows);
+    } catch (err) {
+        sendError(res, 'Failed to fetch updates for project', err);
+    }
+});
+
 
 // =================================================================
 // CREATE/UPDATE ENDPOINTS
