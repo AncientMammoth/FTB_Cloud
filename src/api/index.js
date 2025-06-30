@@ -157,6 +157,12 @@ export async function fetchUpdatesByIds(ids = []) {
     return updates.map(formatUpdate);
 }
 
+export async function fetchUpdatesByProjectId(projectId) {
+    if (!projectId) return [];
+    const updates = await apiRequest(`updates/by-project/${projectId}`);
+    return updates.map(formatUpdate);
+}
+
 // === SINGULAR FETCHES (FIX) ===
 // Added the missing singular fetch functions
 export const fetchAccountById = async (id) => (await fetchAccountsByIds([id]))[0] || null;

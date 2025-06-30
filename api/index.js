@@ -98,10 +98,22 @@ app.get("/api/projects", async (req, res) => {
         const { ids } = req.query;
         if (!ids) return res.status(400).json({ error: "No IDs provided." });
         const idArray = ids.split(',');
+        
+        // Modified query to include updates for each project
         const { rows } = await db.query(
-            `SELECT p.*, a.account_name
+            `SELECT 
+               p.*, 
+               a.account_name,
+               COALESCE(upd.updates, '[]'::json) as updates
              FROM projects p
              LEFT JOIN accounts a ON p.account_id = a.id
+             LEFT JOIN (
+                SELECT 
+                  project_id, 
+                  json_agg(airtable_id ORDER BY date DESC, created_at DESC) as updates
+                FROM updates
+                GROUP BY project_id
+             ) upd ON upd.project_id = p.id
              WHERE p.airtable_id = ANY($1::varchar[])`,
             [idArray]
         );
